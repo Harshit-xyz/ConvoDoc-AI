@@ -1,0 +1,74 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  name         String?
+  authProvider String     @map("auth_provider")
+  documents    Document[]
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Document {
+  id           String        @id @default(uuid())
+  userId       String        @map("user_id")
+  user         User          @relation(fields: [userId], references: [id])
+  name         String
+  fileUrl      String        @map("file_url")
+  subject      String?
+  category     String?
+  year         Int?
+  status       String        @default("uploaded") // uploaded, processing, ready, failed
+  createdAt    DateTime      @default(now()) @map("created_at")
+  documentData DocumentData?
+  vectorData   VectorMetadata[]
+  messages     Message[]
+
+  @@map("documents")
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  role       String   // "user" or "ai"
+  content    String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("messages")
+}
+
+model DocumentData {
+  id                 String   @id @default(uuid())
+  documentId         String   @unique @map("document_id")
+  document           Document @relation(fields: [documentId], references: [id])
+  topics             Json?
+  explanations       Json?
+  mindTree           Json?    @map("mind_tree")
+  predictedQuestions Json?    @map("predicted_questions")
+  pyqPlaceholder     String?  @default("Coming Soon") @map("pyq_placeholder")
+
+  @@map("document_data")
+}
+
+model VectorMetadata {
+  id          String   @id @default(uuid())
+  documentId  String   @map("document_id")
+  document    Document @relation(fields: [documentId], references: [id])
+  pineconeId  String   @map("pinecone_id")
+  chunkIndex  Int      @map("chunk_index")
+  tokenCount  Int      @map("token_count")
+
+  @@map("vector_metadata")
+}

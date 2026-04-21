@@ -1,0 +1,57 @@
+services:
+  backend:
+    image: harshsrivastava05/convodocai-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: convodocai-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/myenv
+    env_file:
+      - ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: convodocai-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    restart: always
+
+  frontend:
+    image: harshsrivastava05/convodocai-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: convodocai-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    env_file:
+      - ./frontend/.env
+    environment:
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge

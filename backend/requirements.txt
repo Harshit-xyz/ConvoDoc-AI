@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+python-multipart
+prisma
+google-generativeai
+pinecone
+redis
+google-auth
+requests
+python-dotenv
+httpx
+pydantic-settings
+langgraph
+pymupdf
+sqids

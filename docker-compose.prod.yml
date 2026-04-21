@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: harshsrivastava05/convodocai-backend-prod:latest
+    container_name: convodocai-backend-prod
+    ports:
+      - "8000:8000"
+    # Unified production .env file handling
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+    # Removed bind mounts mapping local directory to source code for security
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: convodocai-redis-prod
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    restart: always
+    volumes:
+      - redis-data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Pass public URL dynamically during build time
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    image: harshsrivastava05/convodocai-frontend-prod:latest
+    container_name: convodocai-frontend-prod
+    ports:
+      # Expose on standard HTTP port 80
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - API_URL=http://backend:8000
+    # Removed bind mounts mapping local directory to source code for security
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis-data:
